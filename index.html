@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+<!-- CSS only -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+
+<!-- JavaScript Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3" crossorigin="anonymous"></script>
+<!--Using jsDelivr CDN-->
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+</head>
+<body>
+    <div class="accordion" id="accordionExample" style="margin: 100px;">
+        <p class="h1"> JWT Example</p>
+        <br>
+        <button class="btn btn-primary" type="submit" id="login">Login</button>
+        <button class="btn btn-primary" type="submit" id="get_task">Get Task</button>
+        <br>
+        <br>
+        <hr>
+        <br>
+        <br>
+        <p class="h3"> Result: </p>
+        <div class="form-floating">
+            <textarea style="height: 400px;" class="form-control" rows="10" placeholder="Leave a comment here" id="result"></textarea>
+        </div>
+    </div>
+    <script>
+        // Khởi tạo axios
+        const instance = axios.create({
+            baseURL: '',
+            timeout: 3 * 1000,
+            hears: {
+                'Content-Type': 'application/json',
+            }
+        });
+        // Check data before send server => Thêm bộ chặn request
+        // https://axios-http.com/vi/docs/interceptors
+        instance.interceptors.request.use( async function (config) {
+            console.log('Nhận request: ' + JSON.stringify(config));
+            if ((config.url).includes('/login', '/refresh-token')) {
+                return config;
+            }
+            config.headers['X-Auth-Token'] = window.localStorage.getItem('token') || '';;
+            return config;
+        }, function (error) {
+            // Làm gì đó với lỗi request
+            return Promise.reject(error);
+        });
+
+        // Check data before client revice response => Thêm bộ chặn response
+        // https://axios-http.com/vi/docs/interceptors
+        
+        instance.interceptors.response.use(async function(response) {
+            console.log('Nhận response: ' + JSON.stringify(response));
+            const config = response.config;
+            if (config.url.includes('/login', '/refresh-token')) {
+                return response;
+            }
+
+            // Handle expired token of response
+            if (response.data) {
+                if (response.data.code === 401 && response.data.msg === 'jwt expired') {
+                    console.log('Vào chưa ban ơi');
+                    const { token, refreshToken } = await getLocalStorage();
+                    console.log('Handle expired !!!');
+                    // Get token from refresh token
+                    const data = await _refreshToken();
+                    if (data.status) {
+                        // Set token
+                        config.headers['X-Auth-Token'] = token;
+                        // Set refresh token and token at localStorage
+                        await setLocalStorage(data.token, data.refreshToken);
+                        // Refresh token
+                        return instance(config);
+                    }
+                }
+            }
+            return response;
+        }, function (error) {
+            // Bất kì mã trạng thái nào lọt ra ngoài tầm 2xx đều khiến hàm này được trigger
+            // Làm gì đó với lỗi response
+            return Promise.reject(error);
+        });
+
+        // Call button handler (Login)
+        const btnLogin = document.getElementById('login');
+        if (btnLogin) {
+            btnLogin.addEventListener('click', async () => {
+                const data = await login();
+                if (data.status) {
+                    await setLocalStorage(data.token, data.refreshToken);
+                    document.getElementById('result').value = 
+                    'Token: ' + data.token + '\n\n\n' +'Refresh-Token: ' + data.refreshToken
+                }
+            });
+        }
+
+        const btnGetTask = document.getElementById('get_task');
+        if (btnGetTask) {
+            btnGetTask.addEventListener('click', async () => {
+                document.getElementById('result').value = '';
+                const data = await getTask();
+                if (data.status) {
+                    document.getElementById('result').value = `
+                    Status: ${data.status}\n\n
+                    Name: ${JSON.stringify(data.contents.name)}
+                    Date: ${JSON.stringify(data.contents.date)}
+                    `
+                } else {
+                    if (data.message) {
+                        document.getElementById('result').value = 
+                        'Name : ' + data.message.name + '\n' +
+                        'Error : '+ data.message.message;
+                    } else {
+                        document.getElementById('result').value =  'Error';
+                    }
+                }
+            });
+        }
+
+
+        async function login() {
+            const data = {
+                username: 'admin',
+                password: 'admin',
+            }
+            return ((await instance.post('/login', data)).data);
+        }
+
+        async function _refreshToken() {
+            const data = {
+                refreshToken: window.localStorage.getItem('refreshToken') || ''
+            }
+            return ((await instance.post('/refresh-token', data)).data);
+        }
+
+        async function getTask() {
+            return ((await instance.get('/task')).data);
+        }
+
+        async function setLocalStorage(token, refreshToken) {
+            window.localStorage.setItem('token', token);
+            window.localStorage.setItem('refreshToken', refreshToken);
+        }
+
+        async function getLocalStorage() {
+            const token = window.localStorage.getItem('token') || '';
+            const refreshToken = window.localStorage.getItem('refreshToken') || '';
+            return {
+                token: token,
+                refreshToken: refreshToken
+            };
+        }
+
+    </script>
+</body>
+</html>
