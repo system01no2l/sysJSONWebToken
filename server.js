@@ -14,10 +14,6 @@ const usersRouter = require('./routes/task');
 app.use('/', indexRouter);
 app.use('/task', usersRouter);
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
-
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 });
