@@ -4,7 +4,7 @@ const Task = require('../model/task');
 
 const { verifyToken } = require('../middleware/middleware-token');
 
-/* GET users listing. */
+/* GET task listing. */
 router.get('/', verifyToken , function (req, res) {
   return res.json({ status: true, contents: Task })
 })

@@ -5,10 +5,10 @@ class Redis {
         this.redisClient = redis.createClient();
 
         this.redisClient.on("error", (error) => {
-        console.log(error);
+            console.log(error);
         });
         this.redisClient.on("connect", () => {
-        console.log("Redis connected!");
+            console.log("Redis connected!");
         });
 
         this.redisClient.connect().then();
