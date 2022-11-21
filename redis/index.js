@@ -12,7 +12,6 @@ class Redis {
         });
 
         this.redisClient.connect().then();
-        this.redisClient.set('a', 'b');
     }
 
     async setKeyValue(key, data) {

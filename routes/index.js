@@ -19,7 +19,7 @@ router.post('/login', async function (req, res, next) {
     if (username === userModel.username && password === userModel.password) {
         // payload
         const user =  {
-            id: 'xxxxx',
+            id: '21102508',
             username: username,
             role: 'admin',
         };
@@ -63,7 +63,7 @@ router.post('/refresh-token', async function(req, res, next) {
         if (redis_data && redis_data.refreshToken === refreshToken) {
             // payload
             const user = {
-                id: 'xxxxx',
+                id: '21102508',
                 username: 'admin',
                 role: 'admin',
             }
@@ -86,5 +86,26 @@ router.post('/refresh-token', async function(req, res, next) {
         message: 'Please login system',
     })
 })
+
+router.post('/logout', async function(req, res, next) {
+    const token = req.body.token;
+    const refreshToken = req.body.refreshToken;
+    try {
+        const _token = jwt.verify(token, _CONF.SECRET);
+        const _refreshToken = jwt.verify(refreshToken, _CONF.SECRET_REFRESH);
+
+        // Có thể lưu vào Redis ở trạng thái token hết hạn hoặc blacklist
+        await Redis.setKeyValue(`bl_${_token.id}`, JSON.stringify({
+            status: false,
+            token,
+            refreshToken
+        }));
+        return res.json({ status: true, message: 'ok'});
+    } catch (error) {
+        console.log(error);
+        return res.status(500).send({ error });
+    }
+});
+
 
 module.exports = router;

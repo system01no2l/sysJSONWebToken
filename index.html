@@ -21,6 +21,7 @@
         <br>
         <button class="btn btn-primary" type="submit" id="login">Login</button>
         <button class="btn btn-primary" type="submit" id="get_task">Get Task</button>
+        <button class="btn btn-primary" type="submit" id="logout">Logout</button>
         <br>
         <br>
         <hr>
@@ -107,17 +108,19 @@
             btnGetTask.addEventListener('click', async () => {
                 document.getElementById('result').value = '';
                 const data = await getTask();
-                if (data.status) {
+                if (data.status && !data.message) {
                     document.getElementById('result').value = `
                     Status: ${data.status}\n\n
                     Name: ${JSON.stringify(data.contents.name)}
                     Date: ${JSON.stringify(data.contents.date)}
                     `
                 } else {
-                    if (data.message) {
+                    if (typeof (data.message) === 'object)') {
                         document.getElementById('result').value = 
                         'Name : ' + data.message.name + '\n' +
                         'Error : '+ data.message.message;
+                    } if (typeof data.message === 'string') {
+                        document.getElementById('result').value =  data.message;
                     } else {
                         document.getElementById('result').value =  'Error';
                     }
@@ -125,6 +128,17 @@
             });
         }
 
+        const btnLogout = document.getElementById('logout');
+        if (btnLogout) {
+            btnLogout.addEventListener('click', async () => {
+                const data = await logout();
+                if (data.status) {
+                    window.localStorage.removeItem('token');
+                    window.localStorage.removeItem('refreshToken');
+                    alert('Logout ...');
+                }
+            });
+        }
 
         async function login() {
             const data = {
@@ -139,6 +153,14 @@
                 refreshToken: window.localStorage.getItem('refreshToken') || ''
             }
             return ((await instance.post('/refresh-token', data)).data);
+        }
+
+        async function logout() {
+            const data = {
+                token: window.localStorage.getItem('token') || '',
+                refreshToken: window.localStorage.getItem('refreshToken') || '',
+            }
+            return ((await instance.post('/logout', data)).data);
         }
 
         async function getTask() {
