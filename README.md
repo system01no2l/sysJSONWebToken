@@ -1,3 +1,2 @@
 # JSON Web Token
-
-![Image](56436_n.jpg)
+- Đây là ví dụ demo cơ chế hoạt động và ứng dứng của jwt. Cách lấy token tự động khi hết hạn.
